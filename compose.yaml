@@ -4,26 +4,22 @@ services:
     build:
       context: ./video-recorder
       dockerfile: Dockerfile
-    ports:
-      - "7070"
     env_file:
       - config/.env.video-recorder
     restart: unless-stopped
 
   video-recorder-dapr:
     container_name: video-recorder-dapr
-    image: daprio/daprd:1.11.2
+    image: daprio/daprd:1.13.5
     command:
       [
         "./daprd",
         "-app-id",
         "video-recorder",
-        "-app-port",
-        "7070",
         "-placement-host-address",
         "dapr-placement:40000",
         "-dapr-http-port",
-        "3501",
+        "3500",
         "-dapr-grpc-port",
         "50001",
         "-components-path",
@@ -56,7 +52,7 @@ services:
 
   video-compressor-dapr:
     container_name: video-compressor-dapr
-    image: daprio/daprd:1.11.2
+    image: daprio/daprd:1.13.5
     command:
       [
         "./daprd",
@@ -67,7 +63,7 @@ services:
         "-placement-host-address",
         "dapr-placement:40000",
         "-dapr-http-port",
-        "3502",
+        "3501",
         "-dapr-grpc-port",
         "50002",
         "-components-path",
@@ -89,7 +85,7 @@ services:
 
   dapr-placement:
     container_name: dapr-placement
-    image: daprio/placement:1.11.2
+    image: daprio/placement:1.13.5
     command: ["./placement", "-port", "40000", "-log-level", "debug"]
     ports:
       - "40000"

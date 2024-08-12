@@ -5,6 +5,8 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 
+logging.info('Starting video recording...')
+
 with DaprClient() as client:
     for i in range(1, 10):
         order = {'orderId': i}
