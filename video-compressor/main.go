@@ -1,7 +1,44 @@
 package main
 
-import "fmt"
+import (
+	"context"
+    "errors"
+    "fmt"
+	"log"
+	"net/http"
+	"os"
+
+	"github.com/dapr/go-sdk/service/common"
+	daprd "github.com/dapr/go-sdk/service/http"
+)
+
+var sub = &common.Subscription{
+	PubsubName: "pubsub",
+	Topic:      "video-recorded",
+	Route:      "/videos",
+}
 
 func main() {
-	fmt.Println("Hello, world!")
+	appPort := os.Getenv("APP_PORT")
+	if appPort == "" {
+		appPort = "8080"
+	}
+
+	// Create the new server on appPort and add a topic listener
+	s := daprd.NewService(":" + appPort)
+	err := s.AddTopicEventHandler(sub, eventHandler)
+	if err != nil {
+		log.Fatalf("error adding topic subscription: %v", err)
+	}
+
+	// Start the server
+	err = s.Start()
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Fatalf("error listenning: %v", err)
+	}
+}
+
+func eventHandler(ctx context.Context, e *common.TopicEvent) (retry bool, err error) {
+	fmt.Println("Subscriber received:", e.Data)
+	return false, nil
 }
