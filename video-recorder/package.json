@@ -1,0 +1,13 @@
+{
+  "name": "video-recorder",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@dapr/dapr": "^3.3.1"
+  }
+}
