@@ -49,6 +49,8 @@ services:
     env_file:
       - config/.env.video-compressor
     restart: unless-stopped
+    volumes:
+      - ./videos:/temp/videos
 
   video-compressor-dapr:
     container_name: video-compressor-dapr
