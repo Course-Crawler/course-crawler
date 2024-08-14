@@ -94,5 +94,11 @@ func compressVideo(video *Video) (err error) {
 		return err
 	}
 
+	// remove raw video file
+	err = os.Remove(video.RawVideoPath())
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
