@@ -7,6 +7,12 @@ services:
     env_file:
       - config/.env.video-recorder
     restart: unless-stopped
+    volumes:
+      - ${VIDEO_DIR_PATH}:/temp/videos
+    develop:
+      watch:
+        - path: ./video-recorder/index.js
+          action: rebuild
 
   video-recorder-dapr:
     container_name: video-recorder-dapr
@@ -50,7 +56,11 @@ services:
       - config/.env.video-compressor
     restart: unless-stopped
     volumes:
-      - ./videos:/temp/videos
+      - ${VIDEO_DIR_PATH}:/temp/videos
+    develop:
+      watch:
+        - path: ./video-compressor/main.go
+          action: rebuild
 
   video-compressor-dapr:
     container_name: video-compressor-dapr

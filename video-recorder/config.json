@@ -1,0 +1,12 @@
+{
+  "courses": [
+    {
+      "title": "From Zero to Hero: OpenTelemetry in .NET",
+      "slug": "from-zero-to-hero-open-telemetry-in-net"
+    },
+    {
+      "title": "Getting Started: Microservices Architecture",
+      "slug": "getting-started-microservices-architecture"
+    }
+  ]
+}
