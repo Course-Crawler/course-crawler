@@ -1,0 +1,33 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: pubsub
+spec:
+  type: pubsub.rabbitmq
+  version: v1
+  metadata:
+    - name: connectionString
+      value: "amqp://rabbitmq:5672"
+    - name: durable
+      value: "false"
+    - name: deletedWhenUnused
+      value: "false"
+    - name: autoAck
+      value: "false"
+    - name: reconnectWait
+      value: "0"
+    - name: concurrency
+      value: parallel
+    - name: enableDeadLetter
+      value: "true"
+    - name: deliveryMode
+      value: "2"
+    - name: allowedTopics
+      value: "video-recorded"
+    - name: publishingScopes
+      value: "video-recorder=video-recorded;"
+    - name: subscribingScopes
+      value: "video-compressor=video-recorded;"
+scopes:
+  - video-recorder
+  - video-compressor

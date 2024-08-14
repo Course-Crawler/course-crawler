@@ -1,49 +1,157 @@
-# Comments are provided throughout this file to help you get started.
-# If you need more help, visit the Docker Compose reference guide at
-# https://docs.docker.com/go/compose-spec-reference/
-
-# Here the instructions define your application as a service called "server".
-# This service is built from the Dockerfile in the current directory.
-# You can add other services your application may depend on here, such as a
-# database or a cache. For examples, see the Awesome Compose repository:
-# https://github.com/docker/awesome-compose
 services:
-  server:
+  video-recorder:
+    container_name: video-recorder
     build:
-      context: .
+      context: ./video-recorder
+      dockerfile: Dockerfile
+    env_file:
+      - config/.env.video-recorder
+    restart: unless-stopped
+    volumes:
+      - ${VIDEO_DIR_PATH}:/temp/videos
+    develop:
+      watch:
+        - path: ./video-recorder/index.js
+          action: rebuild
+
+  video-recorder-dapr:
+    container_name: video-recorder-dapr
+    image: daprio/daprd:1.13.5
+    command:
+      [
+        "./daprd",
+        "-app-id",
+        "video-recorder",
+        "-placement-host-address",
+        "dapr-placement:40000",
+        "-dapr-http-port",
+        "3500",
+        "-dapr-grpc-port",
+        "50001",
+        "-components-path",
+        "/components",
+        "-config",
+        "/config/config.yaml",
+      ]
+    volumes_from:
+      - dapr-config
+    restart: unless-stopped
+    depends_on:
+      video-recorder:
+        condition: service_started
+      dapr-placement:
+        condition: service_started
+      dapr-config:
+        condition: service_started
+    network_mode: "service:video-recorder"
+
+  video-compressor:
+    container_name: video-compressor
+    build:
+      context: ./video-compressor
+      dockerfile: Dockerfile
     ports:
-      - 8000:8000
+      - "8080"
+    env_file:
+      - config/.env.video-compressor
+    restart: unless-stopped
+    volumes:
+      - ${VIDEO_DIR_PATH}:/temp/videos
+    develop:
+      watch:
+        - path: ./video-compressor/main.go
+          action: rebuild
 
-# The commented out section below is an example of how to define a PostgreSQL
-# database that your application can use. `depends_on` tells Docker Compose to
-# start the database before your application. The `db-data` volume persists the
-# database data between container restarts. The `db-password` secret is used
-# to set the database password. You must create `db/password.txt` and add
-# a password of your choosing to it before running `docker compose up`.
-#     depends_on:
-#       db:
-#         condition: service_healthy
-#   db:
-#     image: postgres
-#     restart: always
-#     user: postgres
-#     secrets:
-#       - db-password
-#     volumes:
-#       - db-data:/var/lib/postgresql/data
-#     environment:
-#       - POSTGRES_DB=example
-#       - POSTGRES_PASSWORD_FILE=/run/secrets/db-password
-#     expose:
-#       - 5432
-#     healthcheck:
-#       test: [ "CMD", "pg_isready" ]
-#       interval: 10s
-#       timeout: 5s
-#       retries: 5
-# volumes:
-#   db-data:
-# secrets:
-#   db-password:
-#     file: db/password.txt
+  video-compressor-dapr:
+    container_name: video-compressor-dapr
+    image: daprio/daprd:1.13.5
+    command:
+      [
+        "./daprd",
+        "-app-id",
+        "video-compressor",
+        "-app-port",
+        "8080",
+        "-placement-host-address",
+        "dapr-placement:40000",
+        "-dapr-http-port",
+        "3501",
+        "-dapr-grpc-port",
+        "50002",
+        "-components-path",
+        "/components",
+        "-config",
+        "/config/config.yaml",
+      ]
+    volumes_from:
+      - dapr-config
+    restart: unless-stopped
+    depends_on:
+      video-compressor:
+        condition: service_started
+      dapr-placement:
+        condition: service_started
+      dapr-config:
+        condition: service_started
+    network_mode: "service:video-compressor"
 
+  dapr-placement:
+    container_name: dapr-placement
+    image: daprio/placement:1.13.5
+    command: ["./placement", "-port", "40000", "-log-level", "debug"]
+    ports:
+      - "40000"
+    restart: unless-stopped
+    depends_on:
+      zipkin:
+        condition: service_started
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+
+  redis:
+    container_name: redis
+    image: redis:alpine
+    ports:
+      - "6379"
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672"
+      - "15672:15672"
+    restart: unless-stopped
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+      - rabbitmq-logs:/var/log/rabbitmq
+
+  zipkin:
+    container_name: zipkin
+    image: openzipkin/zipkin:latest
+    ports:
+      - "19411:9411"
+    restart: unless-stopped
+
+  dapr-config:
+    container_name: dapr-config
+    build:
+      context: ./dapr
+      dockerfile: Dockerfile
+
+volumes:
+  redis-data:
+    driver: local
+  rabbitmq-data:
+    driver: local
+  rabbitmq-logs:
+    driver: local
+
+networks:
+  default:
+    name: course-crawler-network
+    driver: bridge

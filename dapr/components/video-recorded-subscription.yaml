@@ -1,0 +1,11 @@
+apiVersion: dapr.io/v2alpha1
+kind: Subscription
+metadata:
+  name: video-recorded-subscription
+spec:
+  topic: video-recorded
+  routes:
+    default: /videos
+  pubsubname: pubsub
+scopes:
+  - video-compressor
