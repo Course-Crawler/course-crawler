@@ -31,7 +31,7 @@ async function recordVideo(video) {
 }
 
 async function main() {
-    const video = config.courses[1];
+    const video = config.courses[0];
     await recordVideo(video);
 }
 

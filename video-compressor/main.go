@@ -30,8 +30,12 @@ func (v *Video) RawVideoPath() string {
 	return path.Join(v.Path, fmt.Sprintf("%s.%s", v.Title, v.Extension))
 }
 
+func (v *Video) ConvertedVideoPath() string {
+	return path.Join(v.Path, fmt.Sprintf("%s.mp4", v.Title))
+}
+
 func (v *Video) CompressedVideoPath() string {
-	return path.Join(v.Path, fmt.Sprintf("%s_compressed.%s", v.Title, v.Extension))
+	return path.Join(v.Path, fmt.Sprintf("%s_compressed.mp4", v.Title))
 }
 
 func main() {
@@ -74,15 +78,31 @@ func eventHandler(ctx context.Context, e *common.TopicEvent) (retry bool, err er
 }
 
 func compressVideo(video *Video) (err error) {
+	// touch output converted video file
+	_, err = os.Create(video.ConvertedVideoPath())
+	if err != nil {
+		return err
+	}
+
 	// touch output compressed video file
 	_, err = os.Create(video.CompressedVideoPath())
 	if err != nil {
 		return err
 	}
 
-	// ffmpeg -i input.mp4 -vcodec h264 -acodec mp2 output.mp4
+	// ffmpeg -i input.webm -c copy output.mp4
 	err = ffmpeg.
 		Input(video.RawVideoPath()).
+		Output(video.ConvertedVideoPath()).
+		OverWriteOutput().
+		Run()
+	if err != nil {
+		return err
+	}
+
+	// ffmpeg -i input.mp4 -vcodec h264 -acodec mp2 output.mp4
+	err = ffmpeg.
+		Input(video.ConvertedVideoPath()).
 		Output(video.CompressedVideoPath(), ffmpeg.KwArgs{
 			"vcodec": "h264",
 			"acodec": "mp2",
@@ -96,6 +116,12 @@ func compressVideo(video *Video) (err error) {
 
 	// remove raw video file
 	err = os.Remove(video.RawVideoPath())
+	if err != nil {
+		return err
+	}
+
+	// remove converted video file
+	err = os.Remove(video.ConvertedVideoPath())
 	if err != nil {
 		return err
 	}
