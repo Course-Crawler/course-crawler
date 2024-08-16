@@ -25,9 +25,9 @@ spec:
     - name: allowedTopics
       value: "video-recorded"
     - name: publishingScopes
-      value: "video-recorder=video-recorded;"
+      value: "video-server=video-recorded;"
     - name: subscribingScopes
       value: "video-compressor=video-recorded;"
 scopes:
-  - video-recorder
+  - video-server
   - video-compressor

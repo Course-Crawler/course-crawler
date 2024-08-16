@@ -1,27 +1,55 @@
 services:
-  video-recorder:
-    container_name: video-recorder
+  video-recorder1: &video-recorder-base
+    container_name: video-recorder1
     build:
       context: ./video-recorder
       dockerfile: Dockerfile
+    environment:
+      - EMAIL=${EMAIL}
+      - PASSWORD=${PASSWORD}
+      - VIDEO_TO_RECORD_ID=0
     env_file:
       - config/.env.video-recorder
     restart: unless-stopped
     volumes:
       - ${VIDEO_DIR_PATH}:/temp/videos
+    depends_on:
+      video-server:
+        condition: service_started
+
+  video-recorder2:
+    <<: *video-recorder-base
+    container_name: video-recorder2
+    environment:
+      - EMAIL=${EMAIL}
+      - PASSWORD=${PASSWORD}
+      - VIDEO_TO_RECORD_ID=1
+
+  video-server:
+    container_name: video-server
+    build:
+      context: ./video-server
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - config/.env.video-server
+    restart: unless-stopped
     develop:
       watch:
-        - path: ./video-recorder/index.js
+        - path: ./video-server/main.go
           action: rebuild
 
-  video-recorder-dapr:
-    container_name: video-recorder-dapr
+  video-server-dapr:
+    container_name: video-server-dapr
     image: daprio/daprd:1.13.5
     command:
       [
         "./daprd",
         "-app-id",
-        "video-recorder",
+        "video-server",
+        "-app-port",
+        "3000",
         "-placement-host-address",
         "dapr-placement:40000",
         "-dapr-http-port",
@@ -37,13 +65,13 @@ services:
       - dapr-config
     restart: unless-stopped
     depends_on:
-      video-recorder:
+      video-server:
         condition: service_started
       dapr-placement:
         condition: service_started
       dapr-config:
         condition: service_started
-    network_mode: "service:video-recorder"
+    network_mode: "service:video-server"
 
   video-compressor:
     container_name: video-compressor
