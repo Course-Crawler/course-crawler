@@ -55,7 +55,7 @@ func main() {
 
 		// Return a success message
 		return c.JSON(fiber.Map{
-			"message": "Video recorded successfully",
+			"message": "Video recorded event has successfully been sent",
 		})
 	})
 

@@ -31,4 +31,6 @@
 **/build
 **/dist
 LICENSE
-README.md
+README.**.md
+**/.idea
+./config.json

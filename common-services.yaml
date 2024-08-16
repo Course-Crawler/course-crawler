@@ -1,0 +1,19 @@
+services:
+  video-recorder:
+    container_name: video-recorder
+    build:
+      context: ./video-recorder
+      dockerfile: Dockerfile
+    environment:
+      - EMAIL=${EMAIL}
+      - PASSWORD=${PASSWORD}
+      - VIDEO_TO_RECORD_ID=0
+    env_file:
+      - config/.env.video-recorder
+    restart: unless-stopped
+    volumes:
+      - ${VIDEO_DIR_PATH}:/temp/videos
+      - ./video-recorder/config.json:/usr/src/app/config.json
+    depends_on:
+      video-server:
+        condition: service_started

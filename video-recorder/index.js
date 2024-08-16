@@ -42,24 +42,24 @@ async function recordVideo(video) {
 
     const page = await browser.newPage();
 
-    // const {width, height} = await page.evaluate(() => {
-    //     return {
-    //         width: window.innerWidth, height: window.innerHeight
-    //     };
-    // });
+    const {width, height} = await page.evaluate(() => {
+        return {
+            width: window.innerWidth, height: window.innerHeight
+        };
+    });
     await page.setViewport({
-        width: 2050, height: 1080,
+        width, height,
     });
 
     await page.goto(config.loginUrl, {timeout: 0});
 
     await page.locator('#user\\[email\\]').fill(email);
     await page.locator('#user\\[password\\]').fill(password);
-    await sleep(2000);
+    await sleep(5000);
     const sessionId = await page.$eval('#main-content > div > div > article > form', el => el.getAttribute('id'));
 
     await page.locator(`#${sessionId} > div.form__button-group > button`).click();
-    await sleep(4000);
+    await sleep(5000);
 
     const stream = await getStream(page, {audio: true, video: true});
 
