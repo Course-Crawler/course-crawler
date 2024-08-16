@@ -1,34 +1,36 @@
 services:
-  video-recorder:
-    container_name: video-recorder
+  video-server:
+    container_name: video-server
     build:
-      context: ./video-recorder
+      context: ./video-server
       dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
     env_file:
-      - config/.env.video-recorder
+      - config/.env.video-server
     restart: unless-stopped
-    volumes:
-      - ${VIDEO_DIR_PATH}:/temp/videos
-    develop:
-      watch:
-        - path: ./video-recorder/index.js
-          action: rebuild
+#    develop:
+#      watch:
+#        - path: ./video-server/main.go
+#          action: rebuild
 
-  video-recorder-dapr:
-    container_name: video-recorder-dapr
+  video-server-dapr:
+    container_name: video-server-dapr
     image: daprio/daprd:1.13.5
     command:
       [
         "./daprd",
         "-app-id",
-        "video-recorder",
+        "video-server",
+        "-app-port",
+        "3000",
         "-placement-host-address",
         "dapr-placement:40000",
         "-dapr-http-port",
         "3500",
         "-dapr-grpc-port",
         "50001",
-        "-components-path",
+        "-resources-path",
         "/components",
         "-config",
         "/config/config.yaml",
@@ -37,13 +39,13 @@ services:
       - dapr-config
     restart: unless-stopped
     depends_on:
-      video-recorder:
+      video-server:
         condition: service_started
       dapr-placement:
         condition: service_started
       dapr-config:
         condition: service_started
-    network_mode: "service:video-recorder"
+    network_mode: "service:video-server"
 
   video-compressor:
     container_name: video-compressor
@@ -57,10 +59,10 @@ services:
     restart: unless-stopped
     volumes:
       - ${VIDEO_DIR_PATH}:/temp/videos
-    develop:
-      watch:
-        - path: ./video-compressor/main.go
-          action: rebuild
+#    develop:
+#      watch:
+#        - path: ./video-compressor/main.go
+#          action: rebuild
 
   video-compressor-dapr:
     container_name: video-compressor-dapr
@@ -78,7 +80,7 @@ services:
         "3501",
         "-dapr-grpc-port",
         "50002",
-        "-components-path",
+        "-resources-path",
         "/components",
         "-config",
         "/config/config.yaml",

@@ -1,0 +1,8 @@
+POST http://localhost:3000/video-recorded
+Content-Type: application/json
+
+{
+  "title": "From Zero to Hero: OpenTelemetry in .NET",
+  "path": "/temp/videos/",
+  "extension": "webm"
+}

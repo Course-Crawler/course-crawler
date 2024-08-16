@@ -311,3 +311,4 @@ dist
 .pnp.*
 
 videos/
+config/secrets
