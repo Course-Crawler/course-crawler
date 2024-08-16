@@ -80,12 +80,14 @@ func eventHandler(ctx context.Context, e *common.TopicEvent) (retry bool, err er
 func compressVideo(video *Video) (err error) {
 	// touch output converted video file
 	_, err = os.Create(video.ConvertedVideoPath())
+	defer removeFile(video.ConvertedVideoPath())
 	if err != nil {
 		return err
 	}
 
 	// touch output compressed video file
 	_, err = os.Create(video.CompressedVideoPath())
+	defer removeFile(video.CompressedVideoPath())
 	if err != nil {
 		return err
 	}
@@ -114,17 +116,12 @@ func compressVideo(video *Video) (err error) {
 		return err
 	}
 
-	// remove raw video file
-	err = os.Remove(video.RawVideoPath())
-	if err != nil {
-		return err
-	}
-
-	// remove converted video file
-	err = os.Remove(video.ConvertedVideoPath())
-	if err != nil {
-		return err
-	}
-
 	return nil
+}
+
+func removeFile(name string) {
+	err := os.Remove(name)
+	if err != nil {
+		log.Fatalf("error removing file: %v", err)
+	}
 }
