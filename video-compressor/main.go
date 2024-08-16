@@ -78,6 +78,9 @@ func eventHandler(ctx context.Context, e *common.TopicEvent) (retry bool, err er
 }
 
 func compressVideo(video *Video) (err error) {
+	// remove raw video file
+	defer removeFile(video.RawVideoPath())
+
 	// touch output converted video file
 	_, err = os.Create(video.ConvertedVideoPath())
 	defer removeFile(video.ConvertedVideoPath())
@@ -87,7 +90,6 @@ func compressVideo(video *Video) (err error) {
 
 	// touch output compressed video file
 	_, err = os.Create(video.CompressedVideoPath())
-	defer removeFile(video.CompressedVideoPath())
 	if err != nil {
 		return err
 	}
