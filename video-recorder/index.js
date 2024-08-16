@@ -6,7 +6,7 @@ import axios from "axios";
 const serverUrl = process.env.VIDEO_SERVER_ENDPOINT || "http://localhost:3000";
 const videoDirPath = process.env.VIDEO_DIR_PATH || "/temp/videos/";
 const defaultVideoExtension = process.env.DEFAULT_VIDEO_EXTENSION || "webm";
-const configPath = "config.json";
+const configPath = "./config.json";
 
 const email = process.env.EMAIL;
 const password = process.env.PASSWORD;
@@ -16,12 +16,12 @@ const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
 const browser = await launch({
     executablePath: "/usr/bin/google-chrome",
     headless: "new",
-    args: ["--no-sandbox", "--disable-gpu", "--disable-setuid-sandbox", "--disable-features=dbus"]
+    args: ["--start-fullscreen", "--no-sandbox", "--disable-gpu", "--disable-setuid-sandbox", "--disable-features=dbus"]
 });
 
 async function publishVideoRecordedEvent(video) {
     const videoRecorded = {
-        title: video.title, path: videoDirPath, extension: defaultVideoExtension,
+        title: video.name, path: videoDirPath, extension: defaultVideoExtension,
     };
 
     axios
@@ -36,34 +36,59 @@ async function publishVideoRecordedEvent(video) {
 }
 
 async function recordVideo(video) {
-    console.log("Recording video: " + video.title);
+    console.log("Recording video: " + video.name);
 
-    const videoFile = fs.createWriteStream(path.join(videoDirPath, video.title + "." + defaultVideoExtension));
+    const videoFile = fs.createWriteStream(path.join(videoDirPath, video.name + "." + defaultVideoExtension));
 
     const page = await browser.newPage();
-    await page.goto("https://courses.dometrain.com/users/sign_in", {timeout: 0});
 
-    const stream = await getStream(page, {audio: true, video: true});
+    // const {width, height} = await page.evaluate(() => {
+    //     return {
+    //         width: window.innerWidth, height: window.innerHeight
+    //     };
+    // });
+    await page.setViewport({
+        width: 2050, height: 1080,
+    });
+
+    await page.goto(config.loginUrl, {timeout: 0});
 
     await page.locator('#user\\[email\\]').fill(email);
     await page.locator('#user\\[password\\]').fill(password);
-    await sleep(1000);
-    let sessionId = await page.$eval('#main-content > div > div > article > form', el => el.getAttribute('id'));
-    console.log(sessionId);
+    await sleep(2000);
+    const sessionId = await page.$eval('#main-content > div > div > article > form', el => el.getAttribute('id'));
 
     await page.locator(`#${sessionId} > div.form__button-group > button`).click();
-    await sleep(3000);
+    await sleep(4000);
 
-    await page.goto(`https://courses.dometrain.com/courses/take/${video.slug}`, {timeout: 0});
-    await sleep(20000);
+    const stream = await getStream(page, {audio: true, video: true});
 
-    stream.pipe(videoFile);
+    for (const lesson of video.lessons) {
+        console.log("Recording lesson: " + lesson.name + " (" + lesson.duration + " minutes)");
+        const videoUrl = getVideoUrl({
+            courseSlug: video.slug, lessonId: lesson.id, lessonSlug: lesson.slug
+        });
+
+        await page.goto(videoUrl, {timeout: 0});
+        await waitForVideo(lesson.duration + 1);
+
+        stream.pipe(videoFile);
+    }
 
     // await stream.destroy();
     // videoFile.close();
-    console.log("Video recorded: " + video.title);
-
+    console.log("Video recorded: " + video.name);
     await publishVideoRecordedEvent(video);
+}
+
+function getVideoUrl(options) {
+    let courseUrl = config.courseUrl;
+
+    courseUrl = courseUrl.replace("<course-slug>", options.courseSlug);
+    courseUrl = courseUrl.replace("<lesson-id>", options.lessonId);
+    courseUrl = courseUrl.replace("<lesson-slug>", options.lessonSlug);
+
+    return courseUrl;
 }
 
 async function sleep(ms) {
@@ -72,13 +97,15 @@ async function sleep(ms) {
     });
 }
 
-async function main() {
-    const videoId = process.env.VDIEO_TO_RERORD_ID || 0;
-    const video = config.courses[videoId];
+async function waitForVideo(minutes) {
+    return new Promise((resolve) => {
+        setTimeout(resolve, minutes * 60 * 1000);
+    });
+}
 
-    console.log(process.env.VIDEO_TO_RECORD_ID);
-    console.log(video);
-    console.log(config.courses);
+async function main() {
+    const videoId = parseInt(process.env.VIDEO_TO_RECORD_ID, 10);
+    const video = config.courses[videoId];
 
     await recordVideo(video);
 

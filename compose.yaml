@@ -25,6 +25,38 @@ services:
       - PASSWORD=${PASSWORD}
       - VIDEO_TO_RECORD_ID=1
 
+  video-recorder3:
+    <<: *video-recorder-base
+    container_name: video-recorder3
+    environment:
+      - EMAIL=${EMAIL}
+      - PASSWORD=${PASSWORD}
+      - VIDEO_TO_RECORD_ID=2
+
+  video-recorder4:
+    <<: *video-recorder-base
+    container_name: video-recorder4
+    environment:
+      - EMAIL=${EMAIL}
+      - PASSWORD=${PASSWORD}
+      - VIDEO_TO_RECORD_ID=3
+
+  video-recorder5:
+    <<: *video-recorder-base
+    container_name: video-recorder5
+    environment:
+      - EMAIL=${EMAIL}
+      - PASSWORD=${PASSWORD}
+      - VIDEO_TO_RECORD_ID=4
+
+  video-recorder6:
+    <<: *video-recorder-base
+    container_name: video-recorder6
+    environment:
+      - EMAIL=${EMAIL}
+      - PASSWORD=${PASSWORD}
+      - VIDEO_TO_RECORD_ID=5
+
   video-server:
     container_name: video-server
     build:
