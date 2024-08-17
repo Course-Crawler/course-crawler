@@ -1,4 +1,4 @@
-POST {{baseUrl}}/video-recorded
+POST {{baseUrl}}/videos/record
 Content-Type: application/json
 
 {

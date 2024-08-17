@@ -1,4 +1,9 @@
 {
+  "server": {
+    "baseUrl": "http://video-server:3000",
+    "videoMarkerEndpoint": "/videos/<video-slug>/markers",
+    "videoRecordedEndpoint": "/videos/record"
+  },
   "loginUrl": "https://courses.dometrain.com/users/sign_in",
   "courseUrl": "https://courses.dometrain.com/courses/take/<course-slug>/lessons/<lesson-id>-<lesson-slug>",
   "courses": [

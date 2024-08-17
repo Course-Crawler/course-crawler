@@ -1,4 +1,4 @@
-POST {{baseUrl}}/videos/my-video/video-recording-marker
+POST {{baseUrl}}/videos/my-video/markers
 Content-Type: application/json
 
 {

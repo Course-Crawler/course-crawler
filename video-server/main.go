@@ -5,6 +5,7 @@ import (
 	dapr "github.com/dapr/go-sdk/client"
 	"github.com/gofiber/fiber/v2"
 	"log"
+	"os"
 	"sync"
 )
 
@@ -20,9 +21,10 @@ type VideoRecordingMarker struct {
 }
 
 var (
-	pubsubName = "pubsub"
-	topicName  = "video-recorded"
-	stateStore = "statestore"
+	serverPort = os.Getenv("SERVER_PORT")
+	pubsubName = os.Getenv("DAPR_PUBSUB_NAME")
+	topicName  = os.Getenv("DAPR_PUBSUB_TOPIC")
+	stateStore = os.Getenv("DAPR_STATE_STORE_NAME")
 	daprClient dapr.Client
 	once       sync.Once
 )
@@ -43,13 +45,12 @@ func main() {
 	app := fiber.New()
 
 	app.Get("/health", healthHandler)
-	app.Post("/video-recorded", videoRecordedHandler)
-	app.Post("/videos/:videoSlug/video-recording-marker", setVideoRecordingMarkerHandler)
-	app.Get("/videos/:videoSlug/video-recording-marker", getVideoRecordingMarkerHandler)
-	app.Delete("/videos/:videoSlug/video-recording-marker", deleteVideoRecordingMarkerHandler)
+	app.Post("/videos/record", videoRecordedHandler)
+	app.Post("/videos/:videoSlug/markers", setVideoRecordingMarkerHandler)
+	app.Get("/videos/:videoSlug/markers", getVideoRecordingMarkerHandler)
+	app.Delete("/videos/:videoSlug/markers", deleteVideoRecordingMarkerHandler)
 
-	// Start the server on port 3000
-	log.Fatal(app.Listen(":3000"))
+	log.Fatal(app.Listen(":" + serverPort))
 }
 
 func healthHandler(c *fiber.Ctx) error {
@@ -144,7 +145,7 @@ func getVideoRecordingMarkerHandler(c *fiber.Ctx) error {
 
 	videoRecordingMarker := new(VideoRecordingMarker)
 	if err := json.Unmarshal(value.Value, videoRecordingMarker); err != nil {
-		log.Printf("Failed to unmarshal video recording marker: %s", err)
+		log.Printf("No video marker found for %s video: %s", videoSlug, err)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "Video recording marker not found",
 		})

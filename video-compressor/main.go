@@ -14,11 +14,18 @@ import (
 	ffmpeg "github.com/u2takey/ffmpeg-go"
 )
 
-var sub = &common.Subscription{
-	PubsubName: "pubsub",
-	Topic:      "video-recorded",
-	Route:      "/videos",
-}
+var (
+	serverPort               = os.Getenv("SERVER_PORT")
+	pubsubName               = os.Getenv("DAPR_PUBSUB_NAME")
+	topicName                = os.Getenv("DAPR_PUBSUB_TOPIC")
+	subscriptionEndpoint     = os.Getenv("DAPR_PUBSUB_SUBSCRIPTION_ENDPOINT")
+	compressedVideoExtension = os.Getenv("DEFAULT_COMPRESSED_VIDEO_EXTENSION")
+	sub                      = &common.Subscription{
+		PubsubName: pubsubName,
+		Topic:      topicName,
+		Route:      subscriptionEndpoint,
+	}
+)
 
 type Video struct {
 	Title     string `json:"title"`
@@ -31,21 +38,16 @@ func (v *Video) RawVideoPath() string {
 }
 
 func (v *Video) ConvertedVideoPath() string {
-	return path.Join(v.Path, fmt.Sprintf("%s.mp4", v.Title))
+	return path.Join(v.Path, fmt.Sprintf("%s.%s", v.Title, compressedVideoExtension))
 }
 
 func (v *Video) CompressedVideoPath() string {
-	return path.Join(v.Path, fmt.Sprintf("%s_compressed.mp4", v.Title))
+	return path.Join(v.Path, fmt.Sprintf("%s_compressed.%s", v.Title, compressedVideoExtension))
 }
 
 func main() {
-	appPort := os.Getenv("APP_PORT")
-	if appPort == "" {
-		appPort = "8080"
-	}
-
 	// Create the new server on appPort and add a topic listener
-	s := daprd.NewService(":" + appPort)
+	s := daprd.NewService(":" + serverPort)
 	err := s.AddTopicEventHandler(sub, eventHandler)
 	if err != nil {
 		log.Fatalf("error adding topic subscription: %v", err)
@@ -53,6 +55,7 @@ func main() {
 
 	// Start the server
 	err = s.Start()
+	log.Printf("subscriber listening on: %s\n", serverPort)
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("error listenning: %v", err)
 	}
