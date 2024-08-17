@@ -51,34 +51,43 @@ async function recordVideo(video) {
         width, height,
     });
 
-    await page.goto(config.loginUrl, {timeout: 0});
-
-    await page.locator('#user\\[email\\]').fill(email);
-    await page.locator('#user\\[password\\]').fill(password);
-    await sleep(5000);
-    const sessionId = await page.$eval('#main-content > div > div > article > form', el => el.getAttribute('id'));
-
-    await page.locator(`#${sessionId} > div.form__button-group > button`).click();
-    await sleep(5000);
+    await login(page);
 
     const stream = await getStream(page, {audio: true, video: true});
 
     for (const lesson of video.lessons) {
-        console.log("Recording lesson: " + lesson.name + " (" + lesson.duration + " minutes)");
-        const videoUrl = getVideoUrl({
-            courseSlug: video.slug, lessonId: lesson.id, lessonSlug: lesson.slug
-        });
-
-        await page.goto(videoUrl, {timeout: 0});
-        await waitForVideo(lesson.duration + 1);
-
+        await recordLesson(page, video, lesson);
         stream.pipe(videoFile);
     }
+
+    await waitForVideo(1);
 
     // await stream.destroy();
     // videoFile.close();
     console.log("Video recorded: " + video.name);
     await publishVideoRecordedEvent(video);
+}
+
+async function login(page) {
+    await page.goto(config.loginUrl, {timeout: 0});
+    await page.locator('#user\\[email\\]').fill(email);
+    await page.locator('#user\\[password\\]').fill(password);
+
+    await sleep(1000);
+
+    const sessionId = await page.$eval('#main-content > div > div > article > form', el => el.getAttribute('id'));
+    await page.locator(`#${sessionId} > div.form__button-group > button`).click();
+    await page.waitForNavigation();
+}
+
+async function recordLesson(page, video, lesson) {
+    console.log("Recording lesson: " + lesson.name + " (" + lesson.duration + " minutes)");
+    const videoUrl = getVideoUrl({
+        courseSlug: video.slug, lessonId: lesson.id, lessonSlug: lesson.slug
+    });
+
+    await page.goto(videoUrl, {timeout: 0});
+    await waitForVideo(lesson.duration + 1);
 }
 
 function getVideoUrl(options) {
