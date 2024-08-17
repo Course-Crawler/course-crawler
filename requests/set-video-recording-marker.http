@@ -1,0 +1,7 @@
+POST {{baseUrl}}/videos/my-video/video-recording-marker
+Content-Type: application/json
+
+{
+  "lessonIndex": 1,
+  "lessonSlug": "new-lesson"
+}

@@ -1,4 +1,4 @@
-POST http://localhost:3000/video-recorded
+POST {{baseUrl}}/video-recorded
 Content-Type: application/json
 
 {

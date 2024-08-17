@@ -9,10 +9,10 @@ services:
     env_file:
       - config/.env.video-server
     restart: unless-stopped
-#    develop:
-#      watch:
-#        - path: ./video-server/main.go
-#          action: rebuild
+    develop:
+      watch:
+        - path: ./video-server/main.go
+          action: rebuild
 
   video-server-dapr:
     container_name: video-server-dapr
@@ -59,10 +59,10 @@ services:
     restart: unless-stopped
     volumes:
       - ${VIDEO_DIR_PATH}:/temp/videos
-#    develop:
-#      watch:
-#        - path: ./video-compressor/main.go
-#          action: rebuild
+    develop:
+      watch:
+        - path: ./video-compressor/main.go
+          action: rebuild
 
   video-compressor-dapr:
     container_name: video-compressor-dapr
