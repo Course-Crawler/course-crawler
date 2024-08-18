@@ -119,7 +119,6 @@ func eventHandler(ctx context.Context, e *common.TopicEvent) (retry bool, err er
 func convertVideo(video *Video) (convertedVideo *ConvertedVideo, err error) {
 	// touch output converted video file
 	_, err = os.Create(video.ConvertedVideoPath())
-	defer removeFile(video.ConvertedVideoPath())
 	if err != nil {
 		return nil, err
 	}

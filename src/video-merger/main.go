@@ -109,7 +109,7 @@ func (v *Video) GetVideoChunks() ([]*VideoChunk, error) {
 }
 
 func (v *Video) MergedVideoPath() string {
-	return fmt.Sprintf("%s.%s", v.Title, v.Extension)
+	return path.Join(v.OutputPath, fmt.Sprintf("%s.%s", v.Title, v.Extension))
 }
 
 type MergedVideo struct {
@@ -196,7 +196,7 @@ func mergeVideo(video *Video) (mergedVideo *MergedVideo, err error) {
 	// create the concat-list.txt file and write the list of video chunks names to it
 	concatListFilePath := path.Join(video.ChunkDirPath, "concat-list.txt")
 	concatListFile, err := os.Create(concatListFilePath)
-	//defer removeFile(concatListFilePath)
+	defer removeFile(concatListFilePath)
 
 	if err != nil {
 		return nil, err
@@ -219,7 +219,8 @@ func mergeVideo(video *Video) (mergedVideo *MergedVideo, err error) {
 		"-avoid_negative_ts", "1",
 		"-f", "concat",
 		"-i", concatListFilePath,
-		strconv.Quote(video.MergedVideoPath()),
+		video.MergedVideoPath(),
+		"-f", video.Extension,
 	}
 	cmd := exec.Command("ffmpeg", args...)
 	log.Printf("Running command for merging video: %v\n", cmd)
@@ -236,7 +237,6 @@ func mergeVideo(video *Video) (mergedVideo *MergedVideo, err error) {
 	removeVideoChunks(chunks)
 
 	log.Printf("Merged video file created successfully: %s\n", video.MergedVideoPath())
-	moveFile(video.MergedVideoPath(), path.Join(video.OutputPath, video.MergedVideoPath()))
 
 	mergedVideo = NewMergedVideo(video)
 	return mergedVideo, nil
@@ -246,13 +246,6 @@ func removeFile(name string) {
 	err := os.Remove(name)
 	if err != nil {
 		log.Fatalf("error removing file: %v", err)
-	}
-}
-
-func moveFile(srcPath, destPath string) {
-	err := os.Rename(srcPath, destPath)
-	if err != nil {
-		log.Fatalf("error moving file: %v", err)
 	}
 }
 
