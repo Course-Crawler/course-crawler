@@ -10,9 +10,11 @@ import (
 )
 
 type Video struct {
-	Title     string `json:"title"`
-	Path      string `json:"path"`
-	Extension string `json:"extension"`
+	Title        string `json:"title"`
+	Slug         string `json:"slug"`
+	ChunkDirPath string `json:"chunkDirPath"`
+	Extension    string `json:"extension"`
+	OutputPath   string `json:"outputPath"`
 }
 
 type VideoRecordingMarker struct {
