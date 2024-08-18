@@ -47,7 +47,11 @@ func NewVideoChunk(filePath string) (*VideoChunk, error) {
 	}
 
 	chunkBaseName := path.Base(filePath)
-	chunkId, err := strconv.Atoi(strings.Split(chunkBaseName, "_")[1])
+
+	chunkFileName := strings.Split(chunkBaseName, ".")[0]
+	chunkFileNameTokens := strings.Split(chunkFileName, "_")
+
+	chunkId, err := strconv.Atoi(chunkFileNameTokens[len(chunkFileNameTokens)-1])
 	if err != nil {
 		return nil, err
 	}
