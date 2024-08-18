@@ -23,11 +23,11 @@ spec:
     - name: deliveryMode
       value: "2"
     - name: allowedTopics
-      value: "video-recorded;video-merged;video-converted;"
+      value: "video-recorded,video-merged,video-converted"
     - name: publishingScopes
-      value: "video-server=video-recorded;video-merger=video-merged;video-converter=video-converted;"
+      value: "video-server=video-recorded;video-merger=video-merged;video-converter=video-converted"
     - name: subscribingScopes
-      value: "video-merger=video-recorded;video-converter=video-merged;video-compressor=video-converted;"
+      value: "video-merger=video-recorded;video-converter=video-merged;video-compressor=video-converted"
 scopes:
   - video-server
   - video-merger

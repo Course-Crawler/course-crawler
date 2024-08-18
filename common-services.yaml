@@ -13,7 +13,8 @@ services:
     restart: unless-stopped
     volumes:
       - ${VIDEO_DIR_PATH}:/temp/videos
-      - ./video-recorder/config.json:/usr/src/app/config.json
+      - ./src/video-recorder/config.json:/usr/src/app/config.json
     depends_on:
       video-server:
-        condition: service_started
+        condition: service_healthy
+        restart: true

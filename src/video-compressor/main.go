@@ -76,16 +76,16 @@ func eventHandler(ctx context.Context, e *common.TopicEvent) (retry bool, err er
 }
 
 func compressVideo(video *Video) (err error) {
-	// remove raw video file
-	defer removeFile(video.RawVideoPath())
-
 	// touch output compressed video file
 	_, err = os.Create(video.CompressedVideoPath())
 	if err != nil {
 		return err
 	}
 
+	log.Printf("Compressed video file created successfully: %s\n", video.CompressedVideoPath())
+
 	// ffmpeg -i input.mp4 -vcodec h264 -acodec mp2 output.mp4
+	log.Printf("Compressing video: %s\n", video.RawVideoPath())
 	err = ffmpeg.
 		Input(video.RawVideoPath()).
 		Output(video.CompressedVideoPath(), ffmpeg.KwArgs{
@@ -98,6 +98,11 @@ func compressVideo(video *Video) (err error) {
 	if err != nil {
 		return err
 	}
+
+	// remove raw video file
+	removeFile(video.RawVideoPath())
+
+	log.Printf("Video compressed successfully: %s\n", video.CompressedVideoPath())
 
 	return nil
 }

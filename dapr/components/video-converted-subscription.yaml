@@ -8,4 +8,5 @@ spec:
     default: /videos/compress
   pubsubname: pubsub
 scopes:
+  - video-converter
   - video-compressor

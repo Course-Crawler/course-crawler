@@ -17,12 +17,3 @@ services:
     extends:
       service: video-recorder
       file: common-services.yaml
-  video-recorder3:
-    container_name: video-recorder3
-    environment:
-      - EMAIL=${EMAIL}
-      - PASSWORD=${PASSWORD}
-      - VIDEO_TO_RECORD_ID=2
-    extends:
-      service: video-recorder
-      file: common-services.yaml

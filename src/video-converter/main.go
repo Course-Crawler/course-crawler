@@ -34,8 +34,8 @@ var (
 type Video struct {
 	Title              string `json:"title"`
 	Path               string `json:"path"`
-	RawExtension       string `json:"RawExtension"`
-	ConvertedExtension string `json:"ConvertedExtension"`
+	RawExtension       string `json:"rawExtension"`
+	ConvertedExtension string `json:"convertedExtension"`
 }
 
 func (v *Video) RawVideoPath() string {
@@ -117,9 +117,6 @@ func eventHandler(ctx context.Context, e *common.TopicEvent) (retry bool, err er
 }
 
 func convertVideo(video *Video) (convertedVideo *ConvertedVideo, err error) {
-	// remove raw video file
-	defer removeFile(video.RawVideoPath())
-
 	// touch output converted video file
 	_, err = os.Create(video.ConvertedVideoPath())
 	defer removeFile(video.ConvertedVideoPath())
@@ -127,7 +124,10 @@ func convertVideo(video *Video) (convertedVideo *ConvertedVideo, err error) {
 		return nil, err
 	}
 
+	log.Printf("Converted video file created successfully: %s\n", video.ConvertedVideoPath())
+
 	// ffmpeg -i input.webm -c copy output.mp4
+	log.Printf("Converting video: %s\n", video.RawVideoPath())
 	err = ffmpeg.
 		Input(video.RawVideoPath()).
 		Output(video.ConvertedVideoPath()).
@@ -136,6 +136,11 @@ func convertVideo(video *Video) (convertedVideo *ConvertedVideo, err error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// remove raw video file
+	removeFile(video.RawVideoPath())
+
+	log.Printf("Video converted successfully: %s\n", video.ConvertedVideoPath())
 
 	convertedVideo = NewConvertedVideo(video)
 	return convertedVideo, nil

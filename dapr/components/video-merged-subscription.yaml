@@ -8,4 +8,5 @@ spec:
     default: /videos/convert
   pubsubname: pubsub
 scopes:
+  - video-merger
   - video-converter

@@ -4,6 +4,7 @@ import * as path from "path";
 import axios from "axios";
 
 const videoDirPath = process.env.VIDEO_DIR_PATH || "/temp/videos/";
+const videoChunkDirPartialPath = process.env.VIDEO_CHUNK_DIR_PARTIAL_PATH || "chunks";
 const defaultVideoExtension = process.env.DEFAULT_VIDEO_EXTENSION || "webm";
 const configPath = process.env.CONFIG_PATH || "./config.json";
 
@@ -20,7 +21,11 @@ const browser = await launch({
 
 async function publishVideoRecordedEvent(video) {
     const videoRecorded = {
-        title: video.name, path: videoDirPath, extension: defaultVideoExtension,
+        title: video.name,
+        slug: video.slug,
+        chunkDirPath: path.join(videoDirPath, video.slug, videoChunkDirPartialPath),
+        extension: defaultVideoExtension,
+        outputPath: path.join(videoDirPath, video.slug)
     };
 
     axios
@@ -36,8 +41,7 @@ async function publishVideoRecordedEvent(video) {
 
 async function setVideoMarker(video, lesson) {
     const videoMarker = {
-        lessonIndex: video.lessons.indexOf(lesson),
-        lessonSlug: lesson.slug,
+        lessonIndex: video.lessons.indexOf(lesson), lessonSlug: lesson.slug,
     }
 
     let endpoint = config.server.baseUrl + config.server.videoMarkerEndpoint;
@@ -54,6 +58,24 @@ async function setVideoMarker(video, lesson) {
         });
 }
 
+async function getWithRetry(url, config, retries = 3, delay = 1000) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            const response = await axios.get(url, config);
+            if (response.status === 200) {
+                return response.data;
+            }
+        } catch (error) {
+            console.log(`Attempt ${attempt} failed: ${error}`);
+            if (attempt < retries) {
+                await new Promise(resolve => setTimeout(resolve, delay));
+            } else {
+                throw error;
+            }
+        }
+    }
+}
+
 async function getVideoMarker(video) {
     let endpoint = config.server.baseUrl + config.server.videoMarkerEndpoint;
     endpoint = endpoint.replace("<video-slug>", video.slug);
@@ -65,10 +87,7 @@ async function getVideoMarker(video) {
     };
 
     try {
-        const response = await axios.get(endpoint, axiosConf);
-        if (response.status === 200) {
-            return response.data
-        }
+        return await getWithRetry(endpoint, axiosConf);
     } catch (error) {
         console.log(error);
     }
@@ -91,61 +110,85 @@ async function removeVideoMarker(video) {
         });
 }
 
-async function recordVideo(video) {
-    console.log("Recording video: " + video.name);
+class VideoRecorder {
+    video;
+    videoMarkerIndex;
+    page;
+    videoFile;
+    stream;
 
-    const videoFile = fs.createWriteStream(path.join(videoDirPath, video.name + "." + defaultVideoExtension), {flags: 'a'});
-
-    const page = await browser.newPage();
-
-    const {width, height} = await page.evaluate(() => {
-        return {
-            width: window.innerWidth, height: window.innerHeight
-        };
-    });
-    await page.setViewport({
-        width, height,
-    });
-
-    await login(page);
-
-    const stream = await getStream(page, {audio: true, video: true});
-    stream.pipe(videoFile);
-
-    let lessonIndexToResumeFrom = 0;
-    const videoMarker = await getVideoMarker(video);
-    if (videoMarker != null) {
-        lessonIndexToResumeFrom = videoMarker.lessonIndex;
+    constructor(video) {
+        this.video = video;
+        this.videoMarkerIndex = 0;
     }
 
-    for (let i = lessonIndexToResumeFrom; i < video.lessons.length; i++) {
-        const lesson = video.lessons[i];
-        await setVideoMarker(video, lesson);
+    async init() {
+        const videoMarker = await getVideoMarker(this.video);
+        if (videoMarker != null) {
+            this.videoMarkerIndex = videoMarker.lessonIndex
+        }
 
-        await playLesson(page, video, lesson);
-        stream.pipe(videoFile);
+        this.page = await browser.newPage();
+
+        const {width, height} = await this.page.evaluate(() => {
+            return {
+                width: window.innerWidth, height: window.innerHeight
+            };
+        });
+        await this.page.setViewport({
+            width, height,
+        });
+
+        const videoFilePath = path.join(videoDirPath, this.video.slug, videoChunkDirPartialPath, this.video.slug + "_" + this.videoMarkerIndex + "." + defaultVideoExtension);
+        createDirIfNotExists(path.dirname(videoFilePath));
+
+        this.videoFile = fs.createWriteStream(videoFilePath);
+        this.stream = await getStream(this.page, {audio: true, video: true});
     }
 
-    await sleep(1, 'min');
+    async recordVideo() {
+        console.log("Recording video: " + this.video.name);
 
-    await stream.destroy();
-    videoFile.close();
+        await login(this.page);
+        this.record();
 
-    console.log("Video recorded: " + video.name);
-    await removeVideoMarker(video);
-    await publishVideoRecordedEvent(video);
+        for (let i = this.videoMarkerIndex; i < this.video.lessons.length; i++) {
+            const lesson = this.video.lessons[i];
+            await setVideoMarker(this.video, lesson);
+
+            await playLesson(this.page, this.video, lesson);
+            this.record();
+        }
+
+        await sleep(1, 'min');
+
+        console.log("Video recorded: " + this.video.name);
+        await removeVideoMarker(this.video);
+        await publishVideoRecordedEvent(this.video);
+    }
+
+    record() {
+        this.stream.pipe(this.videoFile);
+    }
+
+    async close() {
+        await this.stream.destroy();
+        this.videoFile.close();
+    }
 }
 
 async function login(page) {
     await page.goto(config.loginUrl, {timeout: 0});
     await page.locator('#user\\[email\\]').fill(email);
     await page.locator('#user\\[password\\]').fill(password);
-
-    await sleep(4000);
+    await sleep(4, 'sec');
 
     const sessionId = await page.$eval('#main-content > div > div > article > form', el => el.getAttribute('id'));
     await page.locator(`#${sessionId} > div.form__button-group > button`).click();
-    await page.waitForNavigation();
+    await sleep(6, 'sec');
+    // await page.waitForNavigation();
+
+    console.log("Logged in successfully");
 }
 
 async function playLesson(page, video, lesson) {
@@ -168,6 +211,13 @@ function getVideoUrl(options) {
     return courseUrl;
 }
 
+function createDirIfNotExists(dirPath) {
+    if (!fs.existsSync(dirPath)) {
+        console.log("Creating directory: " + dirPath);
+        fs.mkdirSync(dirPath, {recursive: true});
+    }
+}
+
 async function sleep(time, opt = 'ms') {
     switch (opt) {
         case 'sec':
@@ -185,8 +235,12 @@ async function main() {
     const videoId = parseInt(process.env.VIDEO_TO_RECORD_ID, 10);
     const video = config.courses[videoId];
 
-    await recordVideo(video);
+    const videoRecorder = new VideoRecorder(video);
+    await videoRecorder.init();
 
+    await videoRecorder.recordVideo();
+
+    await videoRecorder.close();
     await browser.close();
 }
 

@@ -2,7 +2,9 @@ POST {{baseUrl}}/videos/record
 Content-Type: application/json
 
 {
-  "title": "From Zero to Hero: OpenTelemetry in .NET",
-  "path": "/temp/videos/",
-  "extension": "webm"
+  "title": "From Zero to Hero: Vertical Slice Architecture",
+  "slug": "from-zero-to-hero-vertical-slice-architecture",
+  "chunkDirPath": "/temp/videos/from-zero-to-hero-vertical-slice-architecture/chunks",
+  "extension": "webm",
+  "outputPath": "/temp/videos/from-zero-to-hero-vertical-slice-architecture"
 }

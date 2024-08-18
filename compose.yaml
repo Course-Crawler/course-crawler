@@ -9,6 +9,9 @@ services:
     env_file:
       - config/.env.video-server
     restart: unless-stopped
+    healthcheck:
+      test: exit 0
+      start_period: 10s
     develop:
       watch:
         - path: ./src/video-server/main.go

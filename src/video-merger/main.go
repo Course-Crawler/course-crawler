@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -20,12 +21,13 @@ import (
 )
 
 var (
-	serverPort           = os.Getenv("SERVER_PORT")
-	pubsubName           = os.Getenv("DAPR_PUBSUB_NAME")
-	subTopicName         = os.Getenv("DAPR_SUB_TOPIC")
-	pubTopicName         = os.Getenv("DAPR_PUB_TOPIC")
-	subscriptionEndpoint = os.Getenv("DAPR_PUBSUB_SUBSCRIPTION_ENDPOINT")
-	sub                  = &common.Subscription{
+	serverPort                        = os.Getenv("SERVER_PORT")
+	pubsubName                        = os.Getenv("DAPR_PUBSUB_NAME")
+	subTopicName                      = os.Getenv("DAPR_SUB_TOPIC")
+	pubTopicName                      = os.Getenv("DAPR_PUB_TOPIC")
+	subscriptionEndpoint              = os.Getenv("DAPR_PUBSUB_SUBSCRIPTION_ENDPOINT")
+	defaultExtensionForConvertedVideo = os.Getenv("DEFAULT_EXTENSION_FOR_CONVERTED_VIDEO")
+	sub                               = &common.Subscription{
 		PubsubName: pubsubName,
 		Topic:      subTopicName,
 		Route:      subscriptionEndpoint,
@@ -107,20 +109,22 @@ func (v *Video) GetVideoChunks() ([]*VideoChunk, error) {
 }
 
 func (v *Video) MergedVideoPath() string {
-	return path.Join(v.OutputPath, fmt.Sprintf("%s.%s", v.Title, v.Extension))
+	return fmt.Sprintf("%s.%s", v.Title, v.Extension)
 }
 
 type MergedVideo struct {
-	Title     string `json:"title"`
-	Path      string `json:"path"`
-	Extension string `json:"extension"`
+	Title              string `json:"title"`
+	Path               string `json:"path"`
+	RawExtension       string `json:"rawExtension"`
+	ConvertedExtension string `json:"convertedExtension"`
 }
 
 func NewMergedVideo(video *Video) *MergedVideo {
 	return &MergedVideo{
-		Title:     video.Title,
-		Path:      video.OutputPath,
-		Extension: video.Extension,
+		Title:              video.Title,
+		Path:               video.OutputPath,
+		RawExtension:       video.Extension,
+		ConvertedExtension: defaultExtensionForConvertedVideo,
 	}
 }
 
@@ -183,15 +187,16 @@ func eventHandler(ctx context.Context, e *common.TopicEvent) (retry bool, err er
 func mergeVideo(video *Video) (mergedVideo *MergedVideo, err error) {
 	// get the list of video chunks
 	chunks, err := video.GetVideoChunks()
-	defer removeVideoChunks(chunks)
 	if err != nil {
 		return nil, err
 	}
 
+	log.Printf("Video %s has %d chunks\n", video.Title, len(chunks))
+
 	// create the concat-list.txt file and write the list of video chunks names to it
 	concatListFilePath := path.Join(video.ChunkDirPath, "concat-list.txt")
 	concatListFile, err := os.Create(concatListFilePath)
-	defer removeFile(concatListFilePath)
+	//defer removeFile(concatListFilePath)
 
 	if err != nil {
 		return nil, err
@@ -204,18 +209,34 @@ func mergeVideo(video *Video) (mergedVideo *MergedVideo, err error) {
 		}
 	}
 
+	log.Printf("Concat list file created: %s\n", concatListFilePath)
+	concatListContent, _ := os.ReadFile(concatListFilePath)
+	log.Printf("Concat list content: %s\n", concatListContent)
+
 	// ffmpeg -avoid_negative_ts 1 -f concat -i concat-list.txt merged-video.webm
 	args := []string{
+		"-safe", "0",
 		"-avoid_negative_ts", "1",
 		"-f", "concat",
 		"-i", concatListFilePath,
-		video.MergedVideoPath(),
+		strconv.Quote(video.MergedVideoPath()),
 	}
 	cmd := exec.Command("ffmpeg", args...)
+	log.Printf("Running command for merging video: %v\n", cmd)
+
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
 	err = cmd.Run()
 	if err != nil {
+		log.Printf("ffmpeg stderr: %s\n", stderr.String())
 		return nil, err
 	}
+
+	removeVideoChunks(chunks)
+
+	log.Printf("Merged video file created successfully: %s\n", video.MergedVideoPath())
+	moveFile(video.MergedVideoPath(), path.Join(video.OutputPath, video.MergedVideoPath()))
 
 	mergedVideo = NewMergedVideo(video)
 	return mergedVideo, nil
@@ -225,6 +246,13 @@ func removeFile(name string) {
 	err := os.Remove(name)
 	if err != nil {
 		log.Fatalf("error removing file: %v", err)
+	}
+}
+
+func moveFile(srcPath, destPath string) {
+	err := os.Rename(srcPath, destPath)
+	if err != nil {
+		log.Fatalf("error moving file: %v", err)
 	}
 }
 

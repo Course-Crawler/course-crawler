@@ -8,4 +8,5 @@ spec:
     default: /videos/merge
   pubsubname: pubsub
 scopes:
+  - video-server
   - video-merger
