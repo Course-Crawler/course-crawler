@@ -15,12 +15,11 @@ import (
 )
 
 var (
-	serverPort               = os.Getenv("SERVER_PORT")
-	pubsubName               = os.Getenv("DAPR_PUBSUB_NAME")
-	topicName                = os.Getenv("DAPR_PUBSUB_TOPIC")
-	subscriptionEndpoint     = os.Getenv("DAPR_PUBSUB_SUBSCRIPTION_ENDPOINT")
-	compressedVideoExtension = os.Getenv("DEFAULT_COMPRESSED_VIDEO_EXTENSION")
-	sub                      = &common.Subscription{
+	serverPort           = os.Getenv("SERVER_PORT")
+	pubsubName           = os.Getenv("DAPR_PUBSUB_NAME")
+	topicName            = os.Getenv("DAPR_SUB_TOPIC")
+	subscriptionEndpoint = os.Getenv("DAPR_PUBSUB_SUBSCRIPTION_ENDPOINT")
+	sub                  = &common.Subscription{
 		PubsubName: pubsubName,
 		Topic:      topicName,
 		Route:      subscriptionEndpoint,
@@ -37,12 +36,8 @@ func (v *Video) RawVideoPath() string {
 	return path.Join(v.Path, fmt.Sprintf("%s.%s", v.Title, v.Extension))
 }
 
-func (v *Video) ConvertedVideoPath() string {
-	return path.Join(v.Path, fmt.Sprintf("%s.%s", v.Title, compressedVideoExtension))
-}
-
 func (v *Video) CompressedVideoPath() string {
-	return path.Join(v.Path, fmt.Sprintf("%s_compressed.%s", v.Title, compressedVideoExtension))
+	return path.Join(v.Path, fmt.Sprintf("%s_compressed.%s", v.Title, v.Extension))
 }
 
 func main() {
@@ -84,32 +79,15 @@ func compressVideo(video *Video) (err error) {
 	// remove raw video file
 	defer removeFile(video.RawVideoPath())
 
-	// touch output converted video file
-	_, err = os.Create(video.ConvertedVideoPath())
-	defer removeFile(video.ConvertedVideoPath())
-	if err != nil {
-		return err
-	}
-
 	// touch output compressed video file
 	_, err = os.Create(video.CompressedVideoPath())
 	if err != nil {
 		return err
 	}
 
-	// ffmpeg -i input.webm -c copy output.mp4
-	err = ffmpeg.
-		Input(video.RawVideoPath()).
-		Output(video.ConvertedVideoPath()).
-		OverWriteOutput().
-		Run()
-	if err != nil {
-		return err
-	}
-
 	// ffmpeg -i input.mp4 -vcodec h264 -acodec mp2 output.mp4
 	err = ffmpeg.
-		Input(video.ConvertedVideoPath()).
+		Input(video.RawVideoPath()).
 		Output(video.CompressedVideoPath(), ffmpeg.KwArgs{
 			"vcodec": "h264",
 			"acodec": "mp2",

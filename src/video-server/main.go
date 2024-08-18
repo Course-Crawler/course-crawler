@@ -21,12 +21,12 @@ type VideoRecordingMarker struct {
 }
 
 var (
-	serverPort = os.Getenv("SERVER_PORT")
-	pubsubName = os.Getenv("DAPR_PUBSUB_NAME")
-	topicName  = os.Getenv("DAPR_PUBSUB_TOPIC")
-	stateStore = os.Getenv("DAPR_STATE_STORE_NAME")
-	daprClient dapr.Client
-	once       sync.Once
+	serverPort   = os.Getenv("SERVER_PORT")
+	pubsubName   = os.Getenv("DAPR_PUBSUB_NAME")
+	pubTopicName = os.Getenv("DAPR_PUB_TOPIC")
+	stateStore   = os.Getenv("DAPR_STATE_STORE_NAME")
+	daprClient   dapr.Client
+	once         sync.Once
 )
 
 func GetDaprClient() dapr.Client {
@@ -72,14 +72,14 @@ func videoRecordedHandler(c *fiber.Ctx) error {
 	log.Printf("Received video: %+v", video)
 
 	// Publish the video to the "video-recorded" topic
-	if err := daprClient.PublishEvent(c.Context(), pubsubName, topicName, video); err != nil {
+	if err := daprClient.PublishEvent(c.Context(), pubsubName, pubTopicName, video); err != nil {
 		log.Printf("Failed to publish video: %s", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
 
-	log.Printf("Published video: %+v", video)
+	log.Printf("Published video for merging: %+v", video)
 
 	// Return a success message
 	return c.JSON(fiber.Map{

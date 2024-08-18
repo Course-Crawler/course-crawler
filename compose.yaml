@@ -2,7 +2,7 @@ services:
   video-server:
     container_name: video-server
     build:
-      context: ./video-server
+      context: src/video-server
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
@@ -11,7 +11,7 @@ services:
     restart: unless-stopped
     develop:
       watch:
-        - path: ./video-server/main.go
+        - path: ./src/video-server/main.go
           action: rebuild
 
   video-server-dapr:
@@ -47,13 +47,113 @@ services:
         condition: service_started
     network_mode: "service:video-server"
 
-  video-compressor:
-    container_name: video-compressor
+  video-merger:
+    container_name: video-merger
     build:
-      context: ./video-compressor
+      context: src/video-merger
       dockerfile: Dockerfile
     ports:
       - "8080"
+    env_file:
+      - config/.env.video-merger
+    restart: unless-stopped
+    volumes:
+      - ${VIDEO_DIR_PATH}:/temp/videos
+    develop:
+      watch:
+        - path: ./src/video-merger/main.go
+          action: rebuild
+
+  video-merger-dapr:
+    container_name: video-merger-dapr
+    image: daprio/daprd:1.13.5
+    command:
+      [
+        "./daprd",
+        "-app-id",
+        "video-merger",
+        "-app-port",
+        "8080",
+        "-placement-host-address",
+        "dapr-placement:40000",
+        "-dapr-http-port",
+        "3501",
+        "-dapr-grpc-port",
+        "50002",
+        "-resources-path",
+        "/components",
+        "-config",
+        "/config/config.yaml",
+      ]
+    volumes_from:
+      - dapr-config
+    restart: unless-stopped
+    depends_on:
+      video-merger:
+        condition: service_started
+      dapr-placement:
+        condition: service_started
+      dapr-config:
+        condition: service_started
+    network_mode: "service:video-merger"
+
+  video-converter:
+    container_name: video-converter
+    build:
+      context: src/video-converter
+      dockerfile: Dockerfile
+    ports:
+      - "8081"
+    env_file:
+      - config/.env.video-converter
+    restart: unless-stopped
+    volumes:
+      - ${VIDEO_DIR_PATH}:/temp/videos
+    develop:
+      watch:
+        - path: ./src/video-converter/main.go
+          action: rebuild
+
+  video-converter-dapr:
+    container_name: video-converter-dapr
+    image: daprio/daprd:1.13.5
+    command:
+      [
+        "./daprd",
+        "-app-id",
+        "video-converter",
+        "-app-port",
+        "8081",
+        "-placement-host-address",
+        "dapr-placement:40000",
+        "-dapr-http-port",
+        "3502",
+        "-dapr-grpc-port",
+        "50003",
+        "-resources-path",
+        "/components",
+        "-config",
+        "/config/config.yaml",
+      ]
+    volumes_from:
+      - dapr-config
+    restart: unless-stopped
+    depends_on:
+      video-converter:
+        condition: service_started
+      dapr-placement:
+        condition: service_started
+      dapr-config:
+        condition: service_started
+    network_mode: "service:video-converter"
+
+  video-compressor:
+    container_name: video-compressor
+    build:
+      context: src/video-compressor
+      dockerfile: Dockerfile
+    ports:
+      - "8082"
     env_file:
       - config/.env.video-compressor
     restart: unless-stopped
@@ -61,7 +161,7 @@ services:
       - ${VIDEO_DIR_PATH}:/temp/videos
     develop:
       watch:
-        - path: ./video-compressor/main.go
+        - path: ./src/video-compressor/main.go
           action: rebuild
 
   video-compressor-dapr:
@@ -73,13 +173,13 @@ services:
         "-app-id",
         "video-compressor",
         "-app-port",
-        "8080",
+        "8082",
         "-placement-host-address",
         "dapr-placement:40000",
         "-dapr-http-port",
-        "3501",
+        "3503",
         "-dapr-grpc-port",
-        "50002",
+        "50004",
         "-resources-path",
         "/components",
         "-config",

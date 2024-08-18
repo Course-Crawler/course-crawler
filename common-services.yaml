@@ -2,7 +2,7 @@ services:
   video-recorder:
     container_name: video-recorder
     build:
-      context: ./video-recorder
+      context: ./src/video-recorder
       dockerfile: Dockerfile
     environment:
       - EMAIL=${EMAIL}

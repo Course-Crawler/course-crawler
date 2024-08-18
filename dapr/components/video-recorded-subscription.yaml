@@ -5,7 +5,7 @@ metadata:
 spec:
   topic: video-recorded
   routes:
-    default: /videos/compress
+    default: /videos/merge
   pubsubname: pubsub
 scopes:
-  - video-compressor
+  - video-merger
