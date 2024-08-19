@@ -71,9 +71,9 @@ async function recordVideo(video) {
 
         await page.goto(videoUrl, {timeout: 0});
         await waitForVideo(lesson.duration + 1);
-
-        stream.pipe(videoFile);
     }
+
+    stream.pipe(videoFile);
 
     // await stream.destroy();
     // videoFile.close();
