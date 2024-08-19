@@ -82,7 +82,7 @@ async function recordVideo(video) {
     // await stream.destroy();
     // videoFile.close();
     console.log("Video recorded: " + video.name);
-    await publishVideoRecordedEvent(video);
+    // await publishVideoRecordedEvent(video);
 }
 
 async function login(page) {
