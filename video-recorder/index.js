@@ -51,15 +51,19 @@ async function recordVideo(video) {
         width, height,
     });
 
-    await page.goto(config.loginUrl, {timeout: 0});
+    let loginResult = await login(page);
+    let retries = 3;
+    while (!loginResult && retries > 0) {
+        console.log("Retrying login...");
+        loginResult = await login(page);
+        retries--;
+    }
 
-    await page.locator('#user\\[email\\]').fill(email);
-    await page.locator('#user\\[password\\]').fill(password);
-    await sleep(5000);
-    const sessionId = await page.$eval('#main-content > div > div > article > form', el => el.getAttribute('id'));
-
-    await page.locator(`#${sessionId} > div.form__button-group > button`).click();
-    await sleep(5000);
+    if (!loginResult) {
+        console.error("Failed to login");
+        return;
+    }
+    console.log("Logged in successfully");
 
     const stream = await getStream(page, {audio: true, video: true});
 
@@ -79,6 +83,28 @@ async function recordVideo(video) {
     // videoFile.close();
     console.log("Video recorded: " + video.name);
     await publishVideoRecordedEvent(video);
+}
+
+async function login(page) {
+    await page.goto(config.loginUrl, {timeout: 0});
+
+    await page.locator('#user\\[email\\]').fill(email);
+    await page.locator('#user\\[password\\]').fill(password);
+    await sleep(5000);
+    const sessionId = await page.$eval('#main-content > div > div > article > form', el => el.getAttribute('id'));
+
+    await page.locator(`#${sessionId} > div.form__button-group > button`).click();
+    await sleep(5000);
+    await page.waitForNavigation();
+
+    const pageUrl = await page.url();
+    console.log("Page URL: " + pageUrl);
+    if (pageUrl === config.loginUrl) {
+        console.error("Login failed");
+        return false;
+    }
+
+    return true;
 }
 
 function getVideoUrl(options) {
