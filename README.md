@@ -15,7 +15,7 @@ Course crawling script for self-recording programming courses
 ## How to run
 1. Git clone the repository and cd into it
 2. Install docker and docker-compose
-3. Install [scriptisto](https://repology.org/project/scriptisto/versions) for running the rust init script
+3. Install [scriptisto](https://github.com/igor-petruk/scriptisto) for running the rust init script
 4. Populate the `.env` file with the required environment variables as shown in the `.env.template` file
 5. Assign execute permission to the init script: `chmod +x ./init.sh`
 6. Run the init script: `./init.sh -r <replicas> -c <path_to_courses_to_record_file.csv>`
