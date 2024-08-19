@@ -13,7 +13,7 @@ services:
     environment:
       - EMAIL=${EMAIL}
       - PASSWORD=${PASSWORD}
-      - VIDEO_TO_RECORD_ID=1
+      - VIDEO_TO_RECORD_ID=2
     extends:
       service: video-recorder
       file: common-services.yaml
@@ -22,7 +22,7 @@ services:
     environment:
       - EMAIL=${EMAIL}
       - PASSWORD=${PASSWORD}
-      - VIDEO_TO_RECORD_ID=2
+      - VIDEO_TO_RECORD_ID=4
     extends:
       service: video-recorder
       file: common-services.yaml
@@ -31,7 +31,7 @@ services:
     environment:
       - EMAIL=${EMAIL}
       - PASSWORD=${PASSWORD}
-      - VIDEO_TO_RECORD_ID=3
+      - VIDEO_TO_RECORD_ID=6
     extends:
       service: video-recorder
       file: common-services.yaml
@@ -40,7 +40,7 @@ services:
     environment:
       - EMAIL=${EMAIL}
       - PASSWORD=${PASSWORD}
-      - VIDEO_TO_RECORD_ID=4
+      - VIDEO_TO_RECORD_ID=8
     extends:
       service: video-recorder
       file: common-services.yaml

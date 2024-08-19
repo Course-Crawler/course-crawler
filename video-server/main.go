@@ -4,6 +4,7 @@ import (
 	dapr "github.com/dapr/go-sdk/client"
 	"github.com/gofiber/fiber/v2"
 	"log"
+	"sync"
 )
 
 type Video struct {
@@ -15,16 +16,22 @@ type Video struct {
 var (
 	pubsubName = "pubsub"
 	topicName  = "video-recorded"
+	daprClient dapr.Client
+	once       sync.Once
 )
 
-func main() {
-	// Create a new Dapr client
-	daprClient, err := dapr.NewClient()
-	if err != nil {
-		log.Fatalf("Error creating Dapr client: %v", err)
-	}
-	defer daprClient.Close()
+func GetDaprClient() dapr.Client {
+	once.Do(func() {
+		instance, err := dapr.NewClient()
+		if err != nil {
+			log.Printf("Error creating Dapr client: %v", err)
+		}
+		daprClient = instance
+	})
+	return daprClient
+}
 
+func main() {
 	// Initialize a new Fiber app
 	app := fiber.New()
 
@@ -34,6 +41,8 @@ func main() {
 
 	// Handle the /video-recorded route
 	app.Post("/video-recorded", func(c *fiber.Ctx) error {
+		daprClient = GetDaprClient()
+
 		// Parse the request body into a Video struct
 		video := new(Video)
 		if err := c.BodyParser(video); err != nil {
