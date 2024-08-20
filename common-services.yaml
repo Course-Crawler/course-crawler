@@ -14,6 +14,8 @@ services:
     volumes:
       - ${VIDEO_DIR_PATH}:/temp/videos
       - ./video-recorder/config.json:/usr/src/app/config.json
-    depends_on:
-      video-server:
-        condition: service_started
+#    depends_on:
+#      video-server:
+#        condition: service_started
+    profiles:
+      - client

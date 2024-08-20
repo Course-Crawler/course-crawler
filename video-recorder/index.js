@@ -95,7 +95,7 @@ async function login(page) {
 
     await page.locator(`#${sessionId} > div.form__button-group > button`).click();
     await sleep(5000);
-    await page.waitForNavigation();
+    // await page.waitForNavigation();
 
     const pageUrl = await page.url();
     console.log("Page URL: " + pageUrl);
