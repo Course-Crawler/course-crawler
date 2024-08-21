@@ -147,8 +147,6 @@ async function recordVideo(video) {
             stream.pipe(videoFile);
 
             setTimeout(async () => {
-                await deleteVideoResumeMarker(video.slug);
-
                 stream.unpipe(videoFile);
                 videoFile.close();
 
@@ -163,6 +161,9 @@ async function recordVideo(video) {
         console.log("Progress: " + getProgress(video, resumeMarker) + "%");
     }
 
+    await stream.destroy();
+
+    await deleteVideoResumeMarker(video.slug);
     console.log("Video recorded: " + video.name);
     // await publishVideoRecordedEvent(video);
 }
