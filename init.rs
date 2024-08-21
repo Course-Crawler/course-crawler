@@ -5,7 +5,7 @@
 // build_cmd: "cargo build --release && cp ./target/*musl*/release/script ./target/script"
 // target_bin: ./target/script
 // docker_build:
-//    dockerfile: FROM clux/muslrust
+//    dockerfile: FROM clux/muslrust:1.80.1-stable
 //    src_mount_dir: /volume
 //    extra_args: [-v,cargo-cache:/root/.cargo/registry]
 // files:
@@ -37,6 +37,7 @@ struct Opt {
 #[derive(Debug, serde::Deserialize)]
 struct Course {
     id: u32,
+    chunk_size: u32,
 }
 
 impl Course {
@@ -86,6 +87,7 @@ fn main() {
             writeln!(compose, "      - EMAIL=${{EMAIL}}").expect("Unable to write to compose.override.yaml");
             writeln!(compose, "      - PASSWORD=${{PASSWORD}}").expect("Unable to write to compose.override.yaml");
             writeln!(compose, "      - VIDEO_TO_RECORD_ID={}", course.id).expect("Unable to write to compose.override.yaml");
+            writeln!(compose, "      - CHUNK_SIZE={}", course.chunk_size).expect("Unable to write to compose.override.yaml");
             writeln!(compose, "    extends:").expect("Unable to write to compose.override.yaml");
             writeln!(compose, "      service: video-recorder").expect("Unable to write to compose.override.yaml");
             writeln!(compose, "      file: common-services.yaml").expect("Unable to write to compose.override.yaml");

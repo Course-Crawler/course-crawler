@@ -126,12 +126,12 @@ services:
     container_name: redis
     image: redis:alpine
     ports:
-      - "6379"
+      - "6379:6379"
     restart: unless-stopped
     volumes:
       - redis-data:/data
     profiles:
-      - server
+      - client
 
   rabbitmq:
     container_name: rabbitmq
