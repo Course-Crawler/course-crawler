@@ -97,13 +97,7 @@ function getProgress(video, resumeMarker) {
     return ((resumeMarker / video.lessons.length) * 100).toFixed(1);
 }
 
-async function recordVideo(video) {
-    console.log("Recording video: " + video.name + " with " + video.lessons.length + " lessons");
-    console.log("Chunk size: " + chunkSize);
-
-    const eta = video.lessons.reduce((acc, lesson) => acc + lesson.duration, video.lessons.length);
-    console.log("ETA: " + eta + " min");
-
+async function getNewPage() {
     const page = await browser.newPage();
 
     const {width, height} = await page.evaluate(() => {
@@ -115,10 +109,23 @@ async function recordVideo(video) {
         width, height,
     });
 
+    return page;
+}
+
+async function recordVideo(video) {
+    console.log("Recording video: " + video.name + " with " + video.lessons.length + " lessons");
+    console.log("Chunk size: " + chunkSize);
+
+    const eta = video.lessons.reduce((acc, lesson) => acc + lesson.duration, video.lessons.length);
+    console.log("ETA: " + eta + " min");
+
+    const page = await getNewPage();
+
     const loginResult = await loginWithRetry(page);
     if (!loginResult) {
         return;
     }
+    await page.close();
 
     let resumeMarker = await getVideoResumeMarker(video.slug);
     console.log("Resume marker: " + resumeMarker);
@@ -128,30 +135,40 @@ async function recordVideo(video) {
 
     makeDirIfNotExists(path.join(videoDirPath, video.slug));
 
-    const stream = await getStream(page, {audio: true, video: true});
-    stream.on("error", (error) => {
-        console.error("Stream error: " + error + " for video: " + video.name + " at marker: " + resumeMarker);
-    });
-
     for (const chunk of lessonChunks) {
         try {
+            await setVideoResumeMarker(video.slug, resumeMarker);
             const videoFile = fs.createWriteStream(path.join(videoDirPath, video.slug, video.name + "_" + resumeMarker + "." + defaultVideoExtension));
+
+            const page = await getNewPage();
+            const stream = await getStream(page, {audio: true, video: true});
+
+            stream.on("error", (error) => {
+                console.error("Stream error: " + error + " for video: " + video.name + " at marker: " + resumeMarker);
+            });
+
+            stream.on("end", async () => {
+                console.log("Stream ended for video: " + video.name + " at marker: " + resumeMarker);
+                await stream.destroy();
+            });
 
             await sleep(5000);
             for (const lesson of chunk) {
-                await setVideoResumeMarker(video.slug, resumeMarker);
                 await recordLesson(page, video.slug, lesson);
                 resumeMarker++;
             }
 
             stream.pipe(videoFile);
 
-            setTimeout(async () => {
-                stream.unpipe(videoFile);
-                videoFile.close();
-
-                console.log("Chunk saved in output file for video: " + video.name + " at marker: " + resumeMarker);
-            }, 10 * 1000);
+            // setTimeout(async () => {
+            //     stream.unpipe(videoFile);
+            //     stream.end();
+            //
+            //     videoFile.close();
+            //     await page.close();
+            //
+            //     console.log("Chunk saved in output file for video: " + video.name + " at marker: " + resumeMarker);
+            // }, 10 * 1000);
         } catch (e) {
             console.error("Saving chunk error: " + e + " for video: " + video.name + " at marker: " + resumeMarker);
             return;
@@ -160,8 +177,6 @@ async function recordVideo(video) {
         console.log("Chunk recorded: " + video.name + " at marker: " + resumeMarker);
         console.log("Progress: " + getProgress(video, resumeMarker) + "%");
     }
-
-    await stream.destroy();
 
     await deleteVideoResumeMarker(video.slug);
     console.log("Video recorded: " + video.name);
