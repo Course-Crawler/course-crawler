@@ -84,9 +84,7 @@ async function deleteVideoResumeMarker(videoSlug) {
 }
 
 function chunks(array, size) {
-    return Array.from({length: Math.ceil(array.length / size)}, (v, i) =>
-        array.slice(i * size, i * size + size)
-    );
+    return Array.from({length: Math.ceil(array.length / size)}, (v, i) => array.slice(i * size, i * size + size));
 }
 
 function makeDirIfNotExists(dirPath) {
@@ -127,26 +125,17 @@ async function recordVideo(video) {
 
     const remainedLessons = video.lessons.slice(resumeMarker);
     const lessonChunks = chunks(remainedLessons, chunkSize);
-    console.log("Lesson chunks: " + lessonChunks.length);
 
     makeDirIfNotExists(path.join(videoDirPath, video.slug));
 
-    try {
-        for (const chunk of lessonChunks) {
+    const stream = await getStream(page, {audio: true, video: true});
+    stream.on("error", (error) => {
+        console.error("Stream error: " + error + " for video: " + video.name + " at marker: " + resumeMarker);
+    });
+
+    for (const chunk of lessonChunks) {
+        try {
             const videoFile = fs.createWriteStream(path.join(videoDirPath, video.slug, video.name + "_" + resumeMarker + "." + defaultVideoExtension));
-            const stream = await getStream(page, {audio: true, video: true});
-
-            stream.on("error", (error) => {
-                console.error("Stream error: " + error + " for video: " + video.name + " at marker: " + resumeMarker);
-            });
-
-            stream.on("pipe", async () => {
-                console.log("Stream ended for video: " + video.name + " at marker: " + resumeMarker);
-                await deleteVideoResumeMarker(video.slug);
-
-                await stream.destroy();
-                videoFile.close();
-            });
 
             await sleep(5000);
             for (const lesson of chunk) {
@@ -157,11 +146,21 @@ async function recordVideo(video) {
 
             stream.pipe(videoFile);
 
-            console.log("Chunk recorded: " + video.name + " at marker: " + resumeMarker);
-            console.log("Progress: " + getProgress(video, resumeMarker) + "%");
+            setTimeout(async () => {
+                await deleteVideoResumeMarker(video.slug);
+
+                stream.unpipe(videoFile);
+                videoFile.close();
+
+                console.log("Chunk saved in output file for video: " + video.name + " at marker: " + resumeMarker);
+            }, 10 * 1000);
+        } catch (e) {
+            console.error("Saving chunk error: " + e + " for video: " + video.name + " at marker: " + resumeMarker);
+            return;
         }
-    } catch (e) {
-        console.error("Error: " + e);
+
+        console.log("Chunk recorded: " + video.name + " at marker: " + resumeMarker);
+        console.log("Progress: " + getProgress(video, resumeMarker) + "%");
     }
 
     console.log("Video recorded: " + video.name);
