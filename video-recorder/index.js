@@ -160,15 +160,15 @@ async function recordVideo(video) {
 
             stream.pipe(videoFile);
 
-            // setTimeout(async () => {
-            //     stream.unpipe(videoFile);
-            //     stream.end();
-            //
-            //     videoFile.close();
-            //     await page.close();
-            //
-            //     console.log("Chunk saved in output file for video: " + video.name + " at marker: " + resumeMarker);
-            // }, 10 * 1000);
+            setTimeout(async () => {
+                stream.unpipe(videoFile);
+                stream.end();
+
+                videoFile.close();
+                await page.close();
+
+                console.log("Chunk saved in output file for video: " + video.name + " at marker: " + resumeMarker);
+            }, 30 * 1000);
         } catch (e) {
             console.error("Saving chunk error: " + e + " for video: " + video.name + " at marker: " + resumeMarker);
             return;
@@ -256,8 +256,6 @@ async function waitForVideo(minutes) {
 }
 
 async function main() {
-    process.setMaxListeners(0);
-
     const video = config.courses[videoId];
 
     const redisConnected = await initRedis();
