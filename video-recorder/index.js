@@ -94,7 +94,10 @@ function makeDirIfNotExists(dirPath) {
 }
 
 function getProgress(video, resumeMarker) {
-    return ((resumeMarker / video.lessons.length) * 100).toFixed(1);
+    const durationUntilMarker = video.lessons.slice(0, resumeMarker).reduce((acc, lesson) => acc + lesson.duration, 0);
+    const totalDuration = video.lessons.reduce((acc, lesson) => acc + lesson.duration, 0);
+
+    return Math.round((durationUntilMarker / totalDuration) * 100).toFixed(1);
 }
 
 async function getNewPage() {
@@ -160,15 +163,17 @@ async function recordVideo(video) {
 
             stream.pipe(videoFile);
 
-            setTimeout(async () => {
-                stream.unpipe(videoFile);
-                stream.end();
+            if (resumeMarker < video.lessons.length) {
+                setTimeout(async () => {
+                    stream.unpipe(videoFile);
+                    stream.end();
 
-                videoFile.close();
-                await page.close();
+                    videoFile.close();
+                    await page.close();
 
-                console.log("Chunk saved in output file for video: " + video.name + " at marker: " + resumeMarker);
-            }, 30 * 1000);
+                    console.log("Chunk saved in output file for video: " + video.name + " at marker: " + resumeMarker);
+                }, 40 * 1000);
+            }
         } catch (e) {
             console.error("Saving chunk error: " + e + " for video: " + video.name + " at marker: " + resumeMarker);
             return;
@@ -178,6 +183,7 @@ async function recordVideo(video) {
         console.log("Progress: " + getProgress(video, resumeMarker) + "%");
     }
 
+    await sleep(40 * 1000);
     await deleteVideoResumeMarker(video.slug);
     console.log("Video recorded: " + video.name);
     // await publishVideoRecordedEvent(video);
