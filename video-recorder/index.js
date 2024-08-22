@@ -256,6 +256,8 @@ async function waitForVideo(minutes) {
 }
 
 async function main() {
+    process.setMaxListeners(0);
+
     const video = config.courses[videoId];
 
     const redisConnected = await initRedis();
