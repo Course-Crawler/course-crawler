@@ -160,20 +160,19 @@ async function recordVideo(video) {
                 await recordLesson(page, video.slug, lesson);
                 resumeMarker++;
             }
+            const chunkDuration = chunk.reduce((acc, lesson) => acc + lesson.duration, 0);
 
             stream.pipe(videoFile);
 
-            if (resumeMarker < video.lessons.length) {
-                setTimeout(async () => {
-                    stream.unpipe(videoFile);
-                    stream.end();
+            setTimeout(async () => {
+                stream.unpipe(videoFile);
+                stream.end();
 
-                    videoFile.close();
-                    await page.close();
+                videoFile.close();
+                await page.close();
 
-                    console.log("Chunk saved in output file for video: " + video.name + " at marker: " + resumeMarker);
-                }, 40 * 1000);
-            }
+                console.log("Chunk saved in output file for video: " + video.name + " at marker: " + resumeMarker);
+            }, chunkDuration * 5 * 1000);
         } catch (e) {
             console.error("Saving chunk error: " + e + " for video: " + video.name + " at marker: " + resumeMarker);
             return;
