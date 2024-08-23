@@ -184,6 +184,7 @@ async function recordVideo(video) {
     }
 
     await sleep(40 * 1000);
+    await setVideoResumeMarker(video.slug, resumeMarker);
     // await deleteVideoResumeMarker(video.slug);
     console.log("Video recorded: " + video.name);
     // await publishVideoRecordedEvent(video);
