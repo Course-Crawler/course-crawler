@@ -172,7 +172,7 @@ async function recordVideo(video) {
                 await page.close();
 
                 console.log("Chunk saved in output file for video: " + video.name + " at marker: " + resumeMarker);
-            }, chunkDuration * 5 * 1000);
+            }, chunkDuration * 10 * 1000);
         } catch (e) {
             console.error("Saving chunk error: " + e + " for video: " + video.name + " at marker: " + resumeMarker);
             return;
